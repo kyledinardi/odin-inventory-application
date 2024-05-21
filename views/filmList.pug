@@ -1,0 +1,15 @@
+extends layout
+
+block content 
+  h1= title
+  .listContainer
+    if allFilms.length 
+      each film in allFilms
+        .card 
+          button
+            a(href=film.url)
+              img.thumbnail(src=film.image, alt="")
+              p #{film.title} (#{film.release.getFullYear()}) 
+              p $#{film.price.toFixed(2)}
+    else 
+      h2 There are no films

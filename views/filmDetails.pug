@@ -1,0 +1,21 @@
+extends layout
+
+block content 
+  h1= title
+  img.hero(src=film.image, alt='')
+  p.price $#{film.price.toFixed(2)} 
+    span.stock (#{film.stock} in stock)
+  dl 
+    dt Release Date 
+    dd= releaseDate
+    dt Countries 
+    each country in film.countries 
+      dd= country 
+    dt Genres 
+    each genre in film.genres 
+      dd
+        a(href=genre.url)= genre.name
+  p
+    a(href=`${film.url}/update`) Update Film 
+  p
+    a(href=`${film.url}/delete`) Delete Film 
