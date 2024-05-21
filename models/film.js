@@ -6,8 +6,8 @@ const FilmSchema = new Schema({
   release: { type: Date, required: true },
   price: { type: Number, required: true },
   stock: { type: Number, required: true },
-  countries: [{ type: String, required: true }],
-  genres: [{ type: Schema.Types.ObjectId, ref: 'Genre', required: true }],
+  countries: [{ type: String }],
+  genres: [{ type: Schema.Types.ObjectId, ref: 'Genre' }],
 });
 
 FilmSchema.virtual('url').get(function cb() {
