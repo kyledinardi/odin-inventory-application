@@ -276,9 +276,27 @@ exports.filmUpdatePost = [
 ];
 
 exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  const film = await Film.findById(req.params.id).populate('genres').exec();
+
+  if (film === null) {
+    res.redirect('/films');
+  }
+
+  const releaseDate = film.release.toLocaleString('en-US', {
+    timeZone: 'UTC',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  res.render('FilmDelete', {
+    title: 'Delete Film',
+    film,
+    releaseDate,
+  });
 });
 
 exports.filmDeletePost = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  await Film.findByIdAndDelete(req.body.filmId);
+  res.redirect('/films')
 });

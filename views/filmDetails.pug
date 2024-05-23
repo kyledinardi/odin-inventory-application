@@ -2,6 +2,7 @@ extends layout
 
 block content 
   h1= title
+  block delete
   img.hero(src=film.image, alt='')
   p.price $#{film.price.toFixed(2)} 
     span.stock (#{film.stock} in stock)
