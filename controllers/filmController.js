@@ -160,12 +160,120 @@ exports.filmCreatePost = [
 ];
 
 exports.filmUpdateGet = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  const film = await Film.findById(req.params.id).exec();
+  const allGenres = await Genre.find().sort({ name: 1 }).exec();
+
+  for (let i = 0; i < allGenres.length; i += 1) {
+    if (film.genres.includes(allGenres[i].id)) {
+      allGenres[i].checked = true;
+    }
+  }
+
+  for (let i = 0; i < allCountries.length; i += 1) {
+    if (film.countries.includes(allCountries[i].name)) {
+      allCountries[i].checked = true;
+    } else {
+      allCountries[i].checked = false;
+    }
+  }
+
+  if (film === null) {
+    const err = new Error('Film not found');
+    err.status = 404;
+    next(err);
+  } else {
+    res.render('filmForm', {
+      title: 'Update Film',
+      allGenres,
+      allCountries,
+      film,
+    });
+  }
 });
 
-exports.filmUpdatePost = asyncHandler(async (req, res, next) => {
-  res.send('todo');
-});
+exports.filmUpdatePost = [
+  (req, res, next) => {
+    if (!Array.isArray(req.body.genres)) {
+      req.body.genres = !req.body.genres ? [] : [req.body.genres];
+    }
+    if (!Array.isArray(req.body.countries)) {
+      req.body.countries = !req.body.countries ? [] : [req.body.countries];
+    }
+
+    next();
+  },
+
+  body('title', 'Title must not be empty').trim().isLength({ min: 1 }).escape(),
+  body('release', 'Invalid release date')
+    .isISO8601()
+    .toDate()
+    .escape()
+    .withMessage('Invalid release date'),
+  body('price')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Price must not be empty')
+    .isFloat({ min: 0 })
+    .withMessage('Price must be a positive number'),
+  body('stock')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Stock must not be empty')
+    .isFloat({ min: 0 })
+    .withMessage('Stock must be a positive number'),
+  body('summary', 'Summary must not be empty')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('genres.*').escape(),
+  body('countries.*').escape(),
+
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    const film = new Film({
+      title: req.body.title,
+      release: req.body.release,
+      price: parseInt(req.body.price, 10).toFixed(2),
+      stock: parseInt(req.body.stock, 10).toFixed(0),
+      summary: req.body.summary,
+      countries: req.body.countries,
+      genres: req.body.genres,
+      _id: req.params.id,
+    });
+
+    if (!errors.isEmpty()) {
+      const allGenres = await Genre.find().sort({ name: 1 }).exec();
+
+      for (let i = 0; i < allGenres.length; i += 1) {
+        if (film.genres.includes(allGenres[i].id)) {
+          allGenres[i].checked = true;
+        }
+      }
+
+      for (let i = 0; i < allCountries.length; i += 1) {
+        if (film.countries.includes(allCountries[i].name)) {
+          allCountries[i].checked = true;
+        } else {
+          allCountries[i].checked = false;
+        }
+      }
+
+      res.render('filmForm', {
+        title: 'Add Film',
+        allGenres,
+        allCountries,
+        film,
+        errors: errors.array(),
+      });
+    } else {
+      const updatedFilm = await Film.findByIdAndUpdate(req.params.id, film, {});
+      res.redirect(updatedFilm.url);
+    }
+  }),
+];
 
 exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
   res.send('todo');
