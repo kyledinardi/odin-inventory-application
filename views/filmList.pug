@@ -2,6 +2,7 @@ extends layout
 
 block content 
   h1= title
+  a(href="/film/create") Add Film
   .listContainer
     if allFilms.length 
       each film in allFilms
@@ -13,4 +14,3 @@ block content
               p $#{film.price.toFixed(2)}
     else 
       h2 There are no films
-    a(href="/film/create") Add Film

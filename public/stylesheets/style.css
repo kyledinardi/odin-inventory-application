@@ -9,3 +9,8 @@ img.thumbnail {
 img.hero {
   height: 500px;
 }
+
+#country-list {
+  height: 200px;
+  overflow-y: scroll;
+}
