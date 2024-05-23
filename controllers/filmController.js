@@ -160,8 +160,10 @@ exports.filmCreatePost = [
 ];
 
 exports.filmUpdateGet = asyncHandler(async (req, res, next) => {
-  const film = await Film.findById(req.params.id).exec();
-  const allGenres = await Genre.find().sort({ name: 1 }).exec();
+  const [film, allGenres] = await Promise.all([
+    Film.findById(req.params.id).exec(),
+    Genre.find().sort({ name: 1 }).exec(),
+  ]);
 
   for (let i = 0; i < allGenres.length; i += 1) {
     if (film.genres.includes(allGenres[i].id)) {
@@ -298,5 +300,5 @@ exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
 
 exports.filmDeletePost = asyncHandler(async (req, res, next) => {
   await Film.findByIdAndDelete(req.body.filmId);
-  res.redirect('/films')
+  res.redirect('/films');
 });
