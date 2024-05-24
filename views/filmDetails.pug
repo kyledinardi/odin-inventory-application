@@ -12,10 +12,13 @@ block content
     dt Countries 
     each country in film.countries 
       dd= country 
-    dt Genres 
-    each genre in film.genres 
-      dd
-        a(href=genre.url)= genre.name
+    if film.genres.length > 0
+      dt Genres 
+      each genre in film.genres 
+        dd
+          a(href=genre.url)= genre.name
+    else 
+      h2 This film has no associated genres
   p
     a(href=`${film.url}/update`) Update Film 
   p

@@ -291,7 +291,7 @@ exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
     year: 'numeric',
   });
 
-  res.render('FilmDelete', {
+  res.render('filmDelete', {
     title: 'Delete Film',
     film,
     releaseDate,

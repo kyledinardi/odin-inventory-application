@@ -13,9 +13,11 @@ exports.genreList = asyncHandler(async (req, res, next) => {
 });
 
 exports.genreDetails = asyncHandler(async (req, res, next) => {
-  const [genre, allFilms] = await Promise.all([
+  const [genre, filmsInGenre] = await Promise.all([
     Genre.findById(req.params.id).exec(),
-    Film.find({genres: req.params.id}, 'title release').sort({ title: 1 }).exec(),
+    Film.find({ genres: req.params.id }, 'title release')
+      .sort({ title: 1 })
+      .exec(),
   ]);
 
   if (genre === null) {
@@ -26,37 +28,131 @@ exports.genreDetails = asyncHandler(async (req, res, next) => {
     res.render('genreDetails', {
       title: genre.name,
       genre,
-      allFilms,
-    })
+      filmsInGenre,
+    });
   }
 });
 
-exports.genreCreateGet = asyncHandler(async (req, res, next) => {
-  res.send('todo');
-});
+exports.genreCreateGet = (req, res, next) => {
+  res.render('genreForm', { title: 'Add Genre' });
+};
 
 exports.genreCreatePost = [
-  body(),
+  body('name', 'Genre name must not be empty')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('description', 'Description must not be empty')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
+
+    const genre = new Genre({
+      name: req.body.name,
+      description: req.body.description,
+    });
+
     if (!errors.isEmpty()) {
-      res.send('todo');
+      res.render('genreForm', {
+        title: 'Add Genre',
+        genre,
+        errors: errors.array(),
+      });
+    } else {
+      await genre.save();
+      res.redirect(genre.url);
     }
   }),
 ];
 
 exports.genreUpdateGet = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  const genre = await Genre.findById(req.params.id).exec();
+
+  if (genre === null) {
+    const err = new Error('Genre not found');
+    err.status = 404;
+    next(err);
+  } else {
+    res.render('genreForm', {
+      title: 'Update Genre',
+      genre,
+    });
+  }
 });
 
-exports.genreUpdatePost = asyncHandler(async (req, res, next) => {
-  res.send('todo');
-});
+exports.genreUpdatePost = [
+  body('name', 'Genre name must not be empty')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('description', 'Description must not be empty')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    const genre = new Genre({
+      name: req.body.name,
+      description: req.body.description,
+      _id: req.params.id,
+    });
+
+    if (!errors.isEmpty()) {
+      res.render('genreForm', {
+        title: 'Add Genre',
+        genre,
+        errors: errors.array(),
+      });
+    } else {
+      const updatedGenre = await Genre.findByIdAndUpdate(
+        req.params.id,
+        genre,
+        {},
+      );
+      res.redirect(updatedGenre.url);
+    }
+  }),
+];
 
 exports.genreDeleteGet = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  const [genre, filmsInGenre] = await Promise.all([
+    Genre.findById(req.params.id).exec(),
+    Film.find({ genres: req.params.id }, 'title release')
+      .sort({ title: 1 })
+      .exec(),
+  ]);
+
+  if (genre === null) {
+    res.redirect('/genres');
+  }
+
+  res.render('genreDelete', {
+    title: 'Delete Genre',
+    genre,
+    filmsInGenre,
+  });
 });
 
 exports.genreDeletePost = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  const filmsInGenre = await Film.find(
+    { genres: req.params.id },
+    'genre _id',
+  ).exec();
+
+  if (filmsInGenre !== null) {
+    filmsInGenre.forEach(async (film) => {
+      await Film.updateOne(
+        { _id: film._id },
+        { $pullAll: { genres: [req.params.id] } },
+      );
+    });
+  }
+
+  await Genre.findByIdAndDelete(req.body.genreId);
+  res.redirect('/genres');
 });

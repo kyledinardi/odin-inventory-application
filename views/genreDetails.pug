@@ -5,10 +5,11 @@ block content
   block delete 
   p= genre.description
   h2 #{genre.name} Films
-  ul 
-    each film in allFilms 
-      li 
-        a(href=film.url)= `${film.title} (${film.release.getFullYear()})`
+  if filmsInGenre
+    ul 
+      each film in filmsInGenre 
+        li 
+          a(href=film.url)= `${film.title} (${film.release.getFullYear()})`
   p 
     a(href=`${genre.url}/update`) Update Genre
   p 
