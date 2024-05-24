@@ -13,7 +13,22 @@ exports.genreList = asyncHandler(async (req, res, next) => {
 });
 
 exports.genreDetails = asyncHandler(async (req, res, next) => {
-  res.send('todo');
+  const [genre, allFilms] = await Promise.all([
+    Genre.findById(req.params.id).exec(),
+    Film.find({genres: req.params.id}, 'title release').sort({ title: 1 }).exec(),
+  ]);
+
+  if (genre === null) {
+    const err = new Error('Genre not found');
+    err.status = 404;
+    next(err);
+  } else {
+    res.render('genreDetails', {
+      title: genre.name,
+      genre,
+      allFilms,
+    })
+  }
 });
 
 exports.genreCreateGet = asyncHandler(async (req, res, next) => {
