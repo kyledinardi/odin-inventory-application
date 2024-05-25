@@ -3,6 +3,8 @@ const { body, validationResult } = require('express-validator');
 const Film = require('../models/film');
 const Genre = require('../models/genre');
 
+const adminPassword = 'Wd6C8$t$mN8E';
+
 exports.genreList = asyncHandler(async (req, res, next) => {
   const allGenres = await Genre.find({}, 'name').sort({ name: 1 }).exec();
 
@@ -92,6 +94,13 @@ exports.genreUpdatePost = [
     .trim()
     .isLength({ min: 1 })
     .escape(),
+  body('password')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Enter the admin password')
+    .equals(adminPassword)
+    .withMessage('Incorrect Password'),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -138,21 +147,40 @@ exports.genreDeleteGet = asyncHandler(async (req, res, next) => {
   });
 });
 
-exports.genreDeletePost = asyncHandler(async (req, res, next) => {
-  const filmsInGenre = await Film.find(
-    { genres: req.params.id },
-    'genre _id',
-  ).exec();
+exports.genreDeletePost = [
+  body('password')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Enter the admin password')
+    .equals(adminPassword)
+    .withMessage('Incorrect Password'),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
 
-  if (filmsInGenre !== null) {
-    filmsInGenre.forEach(async (film) => {
-      await Film.updateOne(
-        { _id: film._id },
-        { $pullAll: { genres: [req.params.id] } },
-      );
-    });
-  }
+    const [genre, filmsInGenre] = await Promise.all([
+      Genre.findById(req.params.id).exec(),
+      Film.find({ genres: req.params.id }).sort({ title: 1 }).exec(),
+    ]);
 
-  await Genre.findByIdAndDelete(req.body.genreId);
-  res.redirect('/genres');
-});
+    if (!errors.isEmpty()) {
+      res.render('genreDelete', {
+        genre,
+        filmsInGenre,
+        errors: errors.array(),
+      });
+    } else {
+      if (filmsInGenre !== null) {
+        filmsInGenre.forEach(async (film) => {
+          await Film.updateOne(
+            { _id: film._id },
+            { $pullAll: { genres: [req.params.id] } },
+          );
+        });
+      }
+
+      await Genre.findByIdAndDelete(req.body.genreId);
+      res.redirect('/genres');
+    }
+  }),
+];

@@ -9,6 +9,9 @@ block content
     .field 
       label(for="description") Description
       textarea#description(name="description", cols="30", rows="10", required) #{genre === undefined ? '' : genre.description}
+    .field
+      label(for="password") Admin Password
+      input#password(type="password", name="password", required) 
     button(type="submit") Submit 
   if errors 
     ul 

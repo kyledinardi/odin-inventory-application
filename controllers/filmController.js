@@ -4,6 +4,8 @@ const Film = require('../models/film');
 const Genre = require('../models/genre');
 const allCountries = require('../public/javascripts/allCountries');
 
+const adminPassword = 'Wd6C8$t$mN8E';
+
 exports.index = asyncHandler(async (req, res, next) => {
   const [allFilms, genreCount] = await Promise.all([
     Film.find().exec(),
@@ -185,7 +187,7 @@ exports.filmUpdateGet = asyncHandler(async (req, res, next) => {
     next(err);
   } else {
     res.render('filmForm', {
-      title: 'Update Film',
+      title: 'Add Film',
       allGenres,
       allCountries,
       film,
@@ -231,6 +233,13 @@ exports.filmUpdatePost = [
     .escape(),
   body('genres.*').escape(),
   body('countries.*').escape(),
+  body('password')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Enter the admin password')
+    .equals(adminPassword)
+    .withMessage('Incorrect Password'),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -298,7 +307,36 @@ exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
   });
 });
 
-exports.filmDeletePost = asyncHandler(async (req, res, next) => {
-  await Film.findByIdAndDelete(req.body.filmId);
-  res.redirect('/films');
-});
+exports.filmDeletePost = [
+  body('password')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Enter the admin password')
+    .equals(adminPassword)
+    .withMessage('Incorrect Password'),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      const film = await Film.findById(req.params.id).populate('genres').exec();
+
+      const releaseDate = film.release.toLocaleString('en-US', {
+        timeZone: 'UTC',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
+      res.render('filmForm', {
+        title: 'Delete Film',
+        film,
+        releaseDate,
+        errors: errors.array(),
+      });
+    } else {
+      await Film.findByIdAndDelete(req.body.filmId);
+      res.redirect('/films');
+    }
+  }),
+];

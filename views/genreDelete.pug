@@ -5,4 +5,11 @@ block delete
   p This action cannot be undone.
   form(method="post")
     input(type="hidden", name="genreId", value=genre._id)
+    .field
+      label(for="password") Admin Password
+      input#password(type="password", name="password", required) 
     button(type="submit") Delete #{genre.name}
+  if errors 
+    ul 
+      each error in errors 
+        li!= error.msg
