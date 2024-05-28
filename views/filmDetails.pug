@@ -4,7 +4,7 @@ block content
   h1= title
   block delete
   .detailPage
-    img.hero(src=film.imageUrl ? film.imageUrl : '../images/placeholderPoster.svg', alt='')
+    img.hero(src=film.imageUrl ? `../${film.imageUrl}` : '../images/placeholderPoster.svg', alt='')
     section
       p.price $#{film.price.toFixed(2)} 
         span.stock (#{film.stock} in stock)
