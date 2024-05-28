@@ -3,23 +3,26 @@ extends layout
 block content 
   h1= title
   block delete
-  img.hero(src=film.image, alt='')
-  p.price $#{film.price.toFixed(2)} 
-    span.stock (#{film.stock} in stock)
-  dl 
-    dt Release Date 
-    dd= releaseDate
-    dt Countries 
-    each country in film.countries 
-      dd= country 
-    if film.genres.length > 0
-      dt Genres 
-      each genre in film.genres 
-        dd
-          a(href=genre.url)= genre.name
-    else 
-      h2 This film has no associated genres
-  p
-    a(href=`${film.url}/update`) Update Film 
-  p
-    a(href=`${film.url}/delete`) Delete Film 
+  .detailPage
+    img.hero(src=film.imageUrl ? film.imageUrl : '../images/placeholderPoster.svg', alt='')
+    section
+      p.price $#{film.price.toFixed(2)} 
+        span.stock (#{film.stock} in stock)
+      dl 
+        dt Release Date 
+        dd= releaseDate
+        dt Countries 
+        each country in film.countries 
+          dd= country 
+        if film.genres.length > 0
+          dt Genres 
+          each genre in film.genres 
+            dd
+              a(href=genre.url)= genre.name
+        else 
+          h2 This film has no associated genres
+  .centered
+    a(href=`${film.url}/update`)
+      button Update Film 
+    a(href=`${film.url}/delete`) 
+      button Delete Film 

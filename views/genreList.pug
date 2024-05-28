@@ -2,10 +2,13 @@ extends layout
 
 block content
   h1=title 
-  a(href='/genre/create') Add Genre 
-  if allGenres.length 
-    each genre in allGenres
-      li 
-        a(href=genre.url) #{genre.name} 
-  else 
-    h2 There are no genres.
+  .centered
+    a(href='/genre/create')
+      button Add Genre   
+  section
+    if allGenres.length 
+      each genre in allGenres
+        li 
+          a(href=genre.url) #{genre.name} 
+    else 
+      h2 There are no genres.

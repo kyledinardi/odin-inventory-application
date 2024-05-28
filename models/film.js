@@ -8,14 +8,11 @@ const FilmSchema = new Schema({
   stock: { type: Number, required: true },
   countries: [{ type: String }],
   genres: [{ type: Schema.Types.ObjectId, ref: 'Genre' }],
+  imageUrl: { type: String },
 });
 
 FilmSchema.virtual('url').get(function cb() {
   return `/film/${this._id}`;
-});
-
-FilmSchema.virtual('image').get(function cb() {
-  return `/images/posters/${this._id}.webp`;
 });
 
 module.exports = model('Film', FilmSchema);

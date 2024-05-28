@@ -6,7 +6,7 @@ block delete
   form(method="post")
     input(type="hidden", name="genreId", value=genre._id)
     .field
-      label(for="password") Admin Password
+      label(for="password") Admin Password 
       input#password(type="password", name="password", required) 
     button(type="submit") Delete #{genre.name}
   if errors 

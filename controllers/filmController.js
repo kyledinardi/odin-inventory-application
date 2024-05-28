@@ -1,10 +1,14 @@
 const asyncHandler = require('express-async-handler');
+const multer = require('multer');
+const { writeFileSync } = require('fs');
 const { body, validationResult } = require('express-validator');
 const Film = require('../models/film');
 const Genre = require('../models/genre');
 const allCountries = require('../public/javascripts/allCountries');
 
-const adminPassword = 'Wd6C8$t$mN8E';
+const storage = multer.memoryStorage();
+const upload = multer({ storage, limits: { fileSize: 1e7 } });
+const adminPassword = '1';
 
 exports.index = asyncHandler(async (req, res, next) => {
   const [allFilms, genreCount] = await Promise.all([
@@ -35,9 +39,7 @@ exports.index = asyncHandler(async (req, res, next) => {
 });
 
 exports.filmList = asyncHandler(async (req, res, next) => {
-  const allFilms = await Film.find({}, 'title release price')
-    .sort({ title: 1 })
-    .exec();
+  const allFilms = await Film.find().sort({ title: 1 }).exec();
 
   res.render('filmList', {
     title: 'Browse Films',
@@ -79,6 +81,7 @@ exports.filmCreateGet = asyncHandler(async (req, res, next) => {
 });
 
 exports.filmCreatePost = [
+  upload.single('image'),
   (req, res, next) => {
     if (!Array.isArray(req.body.genres)) {
       req.body.genres = !req.body.genres ? [] : [req.body.genres];
@@ -123,11 +126,12 @@ exports.filmCreatePost = [
     const film = new Film({
       title: req.body.title,
       release: req.body.release,
-      price: parseInt(req.body.price, 10).toFixed(2),
-      stock: parseInt(req.body.stock, 10).toFixed(0),
+      price: Math.round(req.body.price * 100) / 100,
+      stock: parseInt(req.body.stock, 10),
       summary: req.body.summary,
       countries: req.body.countries,
       genres: req.body.genres,
+      imageUrl: req.file ? `/images/${crypto.randomUUID()}.jpg` : null,
     });
 
     if (!errors.isEmpty()) {
@@ -155,6 +159,10 @@ exports.filmCreatePost = [
         errors: errors.array(),
       });
     } else {
+      if (req.file) {
+        writeFileSync(`./public/${film.imageUrl}`, req.file.buffer);
+      }
+
       await film.save();
       res.redirect(film.url);
     }
@@ -187,7 +195,7 @@ exports.filmUpdateGet = asyncHandler(async (req, res, next) => {
     next(err);
   } else {
     res.render('filmForm', {
-      title: 'Add Film',
+      title: 'Update Film',
       allGenres,
       allCountries,
       film,
@@ -196,6 +204,7 @@ exports.filmUpdateGet = asyncHandler(async (req, res, next) => {
 });
 
 exports.filmUpdatePost = [
+  upload.single('image'),
   (req, res, next) => {
     if (!Array.isArray(req.body.genres)) {
       req.body.genres = !req.body.genres ? [] : [req.body.genres];
@@ -243,15 +252,27 @@ exports.filmUpdatePost = [
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
+    const oldFilm = await Film.findById(req.params.id, 'imageUrl');
+
+    let newImageUrl;
+
+    if (req.file) {
+      newImageUrl = `/images/${crypto.randomUUID()}.jpg`;
+    } else if (oldFilm.imageUrl) {
+      newImageUrl = oldFilm.imageUrl;
+    } else {
+      newImageUrl = null;
+    }
 
     const film = new Film({
       title: req.body.title,
       release: req.body.release,
-      price: parseInt(req.body.price, 10).toFixed(2),
-      stock: parseInt(req.body.stock, 10).toFixed(0),
+      price: Math.round(req.body.price * 100) / 100,
+      stock: parseInt(req.body.stock, 10),
       summary: req.body.summary,
       countries: req.body.countries,
       genres: req.body.genres,
+      imageUrl: newImageUrl,
       _id: req.params.id,
     });
 
@@ -273,13 +294,17 @@ exports.filmUpdatePost = [
       }
 
       res.render('filmForm', {
-        title: 'Add Film',
+        title: 'Update Film',
         allGenres,
         allCountries,
         film,
         errors: errors.array(),
       });
     } else {
+      if (req.file) {
+        writeFileSync(`./public/${film.imageUrl}`, req.file.buffer);
+      }
+
       const updatedFilm = await Film.findByIdAndUpdate(req.params.id, film, {});
       res.redirect(updatedFilm.url);
     }

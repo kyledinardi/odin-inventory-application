@@ -2,23 +2,22 @@ extends layout
 
 block content 
   h1= title 
-  form(method="post") 
+  form(enctype="multipart/form-data", method="post") 
     .required * = required
-    .field
+    .mainFields
       label(for="title") Title*
       input#title(type="text", name="title", required, value=(film === undefined ? '' : film.title))
-    .field
       label(for="release") Release Date*
       input#release(type="date", name="release", required, value=(film === undefined ? '' : film.release.toISOString().slice(0, 10)))
-    .field
+      label(for="image") Poster
+      input#image(type="file", name="image", accept='image/jpeg') 
       label(for="price") Price*
-      .price 
-        span $
+      .priceInput
+        span $ 
         input#price(type="tel", name="price", required, value=(film === undefined ? '' : film.price))
-    .field
       label(for="stock") Stock*
       input#stock(type="tel", name="stock", required, value=(film === undefined ? '' : film.stock))
-    .field
+    
       label(for="summary") Summary*
       textarea#summary(name="summary", cols="30", rows="10", required) #{film === undefined ? '' : film.summary}
     fieldset.field Genres
@@ -41,9 +40,9 @@ block content
           else
             input(type="checkbox", name="countries" id=country.name, value=country.name)
           label(for=country.name) #{country.name}
-    if title === 'Add Film'
+    if title === 'Update Film'
       .field
-        label(for="password") Admin Password*
+        label(for="password") Admin Password* 
         input#password(type="password", name="password" required)
     button(type="submit") Submit
   if errors

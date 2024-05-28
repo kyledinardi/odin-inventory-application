@@ -1,16 +1,133 @@
 body {
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background-color: #caf4ff;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  background-color: #fff9d0;
+  padding: 20px 0;
+}
+
+button {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px black solid;
+  background-color: #a0deff;
+}
+
+a button {
+  cursor: pointer;
+  color: black;
+  text-decoration: none;
+  font-size: 1.1rem;
+}
+
+main {
+  max-width: 600px;
+  margin: auto;
+  background-color: #caf4ff;
+}
+
+h1 {
+  text-align: center;
+}
+
+section {
+  background-color: #a0deff;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+  gap: 10px;
+}
+
+.listContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.card button {
+  width: 150px;
+  font-size: 1rem;
 }
 
 img.thumbnail {
   height: 100px;
 }
 
+img {
+  color: black
+}
+
+.detailPage {
+  display: flex;
+  justify-content: space-evenly;
+}
+
 img.hero {
-  height: 500px;
+  height: 400px;
+}
+
+.price {
+  font-size: 1.5rem;
+  margin: 0
+}
+
+.stock {
+  font-size: 1rem;
+}
+
+dt {
+  margin: 5px 0;
+}
+
+form {
+  background-color: #a0deff;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 10px;
+}
+
+.mainFields {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+}
+
+.mainFields label {
+  text-align: right;
+}
+
+textarea {
+  resize: none;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+fieldset {
+  border: 1px solid black;
+  margin: 10px 0;
+}
+
+button[type='submit'] {
+  margin-top: 10px;
+  font-size: 1.2rem;
+  background-color: #5ab2ff;
+  display: block;
 }
 
 #country-list {
-  height: 200px;
+  height: 230px;
   overflow-y: scroll;
+  display: grid;
+  grid-template-columns: 1fr max-content;
 }

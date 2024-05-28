@@ -19,7 +19,7 @@ const limiter = RateLimit({
   max: 100,
 });
 
-app.use(limiter);
+// app.use(limiter);
 app.use(helmet());
 
 const mongoDB = process.env.MONGODB_URI;

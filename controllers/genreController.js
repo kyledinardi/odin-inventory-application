@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Film = require('../models/film');
 const Genre = require('../models/genre');
 
-const adminPassword = 'Wd6C8$t$mN8E';
+const adminPassword = '1';
 
 exports.genreList = asyncHandler(async (req, res, next) => {
   const allGenres = await Genre.find({}, 'name').sort({ name: 1 }).exec();
