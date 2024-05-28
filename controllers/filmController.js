@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const multer = require('multer');
-const { writeFileSync } = require('fs');
+const { writeFileSync, unlinkSync } = require('fs');
 const { body, validationResult } = require('express-validator');
 const Film = require('../models/film');
 const Genre = require('../models/genre');
@@ -342,10 +342,9 @@ exports.filmDeletePost = [
     .withMessage('Incorrect Password'),
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
+    const film = await Film.findById(req.params.id).populate('genres').exec();
 
     if (!errors.isEmpty()) {
-      const film = await Film.findById(req.params.id).populate('genres').exec();
-
       const releaseDate = film.release.toLocaleString('en-US', {
         timeZone: 'UTC',
         month: 'long',
@@ -360,6 +359,9 @@ exports.filmDeletePost = [
         errors: errors.array(),
       });
     } else {
+      if (film.imageUrl) {
+        unlinkSync(`./public/${film.imageUrl}`);
+      }
       await Film.findByIdAndDelete(req.body.filmId);
       res.redirect('/films');
     }

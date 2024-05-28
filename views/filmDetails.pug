@@ -11,16 +11,19 @@ block content
       dl 
         dt Release Date 
         dd= releaseDate
-        dt Countries 
-        each country in film.countries 
-          dd= country 
+        if film.countries.length > 0
+          dt Countries 
+          each country in film.countries 
+            dd= country 
+        else
+          p This film has no associated countries
         if film.genres.length > 0
           dt Genres 
           each genre in film.genres 
             dd
               a(href=genre.url)= genre.name
         else 
-          h2 This film has no associated genres
+          p This film has no associated genres
   .centered
     a(href=`${film.url}/update`)
       button Update Film 
