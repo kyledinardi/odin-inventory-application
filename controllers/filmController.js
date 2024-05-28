@@ -8,7 +8,7 @@ const allCountries = require('../public/javascripts/allCountries');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 1e7 } });
-const adminPassword = '1';
+const adminPassword = process.env.ADMIN_PASSWORD;
 
 exports.index = asyncHandler(async (req, res, next) => {
   const [allFilms, genreCount] = await Promise.all([

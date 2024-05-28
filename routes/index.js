@@ -1,5 +1,4 @@
 const express = require('express');
-const { unlink } = require('fs');
 const filmController = require('../controllers/filmController');
 const genreController = require('../controllers/genreController');
 
