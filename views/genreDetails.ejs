@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/"><button>Home</button></a>
+      <a href="/films"><button>Browse Films</button></a>
+      <a href="/genres"><button>Browse Genres</button></a>
+    </nav>
+    <main>
+      <h1><%= title %></h1>
+      <% if (locals.deleting) { %>
+      <h2>Are you sure you want to delete this genre?</h2>
+      <p>This action cannot be undone.</p>
+      <form method="post">
+        <div class="field">
+          <label for="password">Admin Password</label>
+          <input type="password" name="password" id="password" />
+        </div>
+        <button>Delete</button>
+      </form>
+      <% if (locals.errors) { %>
+      <ul>
+        <% errors.map((error) => { %>
+        <li><%= error.msg %></li>
+        <% }) %>
+      </ul>
+      <% } %> <% } %>
+      <section>
+        <p><%= genre.description %></p>
+        <% if (filmsInGenre.length > 0) { %>
+        <h3><%= genre.name %> films</h3>
+        <ul>
+          <% filmsInGenre.map((film) => { %>
+          <li>
+            <a href="/films/<%= film.id %>"
+              ><%= `${film.title} (${film.release.getFullYear()})` %></a
+            >
+          </li>
+          <% }) %>
+        </ul>
+        <% } else { %>
+        <h3>This genre has no films.</h3>
+        <% }%>
+      </section>
+      <div class="centered">
+        <a href="/genres/<%= genre.id %>/update"
+          ><button>Update Genre</button></a
+        >
+        <a href="/genres/<%= genre.id %>/delete"
+          ><button>Delete Genre</button></a
+        >
+      </div>
+    </main>
+  </body>
+</html>

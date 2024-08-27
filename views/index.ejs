@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/"><button>Home</button></a>
+      <a href="/films"><button>Browse Films</button></a>
+      <a href="/genres"><button>Browse Genres</button></a>
+    </nav>
+    <main>
+      <h1>Welcome to <%= title %></h1>
+      <div class="centered">
+        <section>
+          <p>We Have:</p>
+          <ul>
+            <li><strong><%= filmCount %> total films for sale</strong></li>
+            <li>In <strong><%= genreCount %></strong> different genres</li>
+            <li>From <strong><%= countryCount %> unique countries</strong></li>
+            <li>
+              Current total stock: <strong><%= stockSum %></strong> copies
+            </li>
+          </ul>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

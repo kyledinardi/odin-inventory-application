@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/"><button>Home</button></a>
+      <a href="/films"><button>Browse Films</button></a>
+      <a href="/genres"><button>Browse Genres</button></a>
+    </nav>
+    <main>
+      <h1><%= title %></h1>
+      <form method="post">
+        <div class="mainFields">
+          <label for="name">Genre Name</label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            required
+            value="<%= locals.genre && genre.name %>"
+          />
+          <label for="description">Description</label>
+          <textarea
+            name="description"
+            id="description"
+            cols="30"
+            rows="10"
+            required
+          >
+<%= locals.genre && genre.description %></textarea
+          >
+          <% if (title === 'Update Genre') { %>
+          <label for="password">Admin Password</label>
+          <input type="password" name="password" id="password" required />
+          <% } %>
+        </div>
+        <button>Submit</button>
+      </form>
+      <% if (locals.errors) { %>
+      <ul>
+        <% errors.map((error) => { %>
+        <li><%= error.msg %></li>
+        <% }) %>
+      </ul>
+      <% } %>
+    </main>
+  </body>
+</html>

@@ -3,26 +3,24 @@ const filmController = require('../controllers/filmController');
 const genreController = require('../controllers/genreController');
 
 const router = express.Router();
-
-/* GET home page. */
 router.get('/', filmController.index);
 
 router.get('/films', filmController.filmList);
-router.get('/film/create', filmController.filmCreateGet);
-router.post('/film/create', filmController.filmCreatePost);
-router.get('/film/:id', filmController.filmDetails);
-router.get('/film/:id/update', filmController.filmUpdateGet);
-router.post('/film/:id/update', filmController.filmUpdatePost);
-router.get('/film/:id/delete', filmController.filmDeleteGet);
-router.post('/film/:id/delete', filmController.filmDeletePost);
+router.get('/films/create', filmController.filmCreateGet);
+router.post('/films/create', filmController.filmCreatePost);
+router.get('/films/:filmId', filmController.filmDetails);
+router.get('/films/:filmId/update', filmController.filmUpdateGet);
+router.post('/films/:filmId/update', filmController.filmUpdatePost);
+router.get('/films/:filmId/delete', filmController.filmDeleteGet);
+router.post('/films/:filmId/delete', filmController.filmDeletePost);
 
 router.get('/genres', genreController.genreList);
-router.get('/genre/create', genreController.genreCreateGet);
-router.post('/genre/create', genreController.genreCreatePost);
-router.get('/genre/:id', genreController.genreDetails);
-router.get('/genre/:id/update', genreController.genreUpdateGet);
-router.post('/genre/:id/update', genreController.genreUpdatePost);
-router.get('/genre/:id/delete', genreController.genreDeleteGet);
-router.post('/genre/:id/delete', genreController.genreDeletePost);
+router.get('/genres/create', genreController.genreCreateGet);
+router.post('/genres/create', genreController.genreCreatePost);
+router.get('/genres/:genreId', genreController.genreDetails);
+router.get('/genres/:genreId/update', genreController.genreUpdateGet);
+router.post('/genres/:genreId/update', genreController.genreUpdatePost);
+router.get('/genres/:genreId/delete', genreController.genreDeleteGet);
+router.post('/genres/:genreId/delete', genreController.genreDeletePost);
 
 module.exports = router;

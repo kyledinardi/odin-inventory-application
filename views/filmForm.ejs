@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/"><button>Home</button></a>
+      <a href="/films"><button>Browse Films</button></a>
+      <a href="/genres"><button>Browse Genres</button></a>
+    </nav>
+    <main>
+      <h1><%= title %></h1>
+      <form method="post" enctype="multipart/form-data">
+        <div class="mainFields">
+          <label for="title">Title</label>
+          <input
+            type="text"
+            name="title"
+            id="title"
+            required
+            value="<%= locals.film && film.title %>"
+          />
+          <label for="release">Release Date</label>
+          <input
+            type="date"
+            name="release"
+            id="release"
+            required
+            value="<%= locals.film && film.release.toISOString().substring(0, 10) %>"
+          />
+          <label for="image">Poster</label>
+          <input type="file" name="image" id="image" <%= title !== 'Update Film'
+          ? 'required' : '' %> accept="image/*" />
+          <label for="price">Price</label>
+          <div class="priceInput">
+            <span>$ </span>
+            <input
+              type="tel"
+              name="price"
+              id="price"
+              required
+              value="<%= locals.film && film.price %>"
+            />
+          </div>
+          <label for="stock">Stock</label>
+          <input
+            type="tel"
+            name="stock"
+            id="stock"
+            required
+            value="<%= locals.film && film.stock %>"
+          />
+          <label for="summary">Summary</label>
+          <textarea name="summary" id="summary" cols="30" rows="10" required>
+<%= locals.film && film.summary %></textarea
+          >
+        </div>
+        <fieldset class="field">
+          Genres <% allGenres.map((genre) => { %>
+          <div class="genre-checkbox">
+            <input type="checkbox" name="genres" id="<%= genre.name %>"
+            value="<%= genre.id %>" <%= locals.selectedGenres &&
+            selectedGenres.includes(genre.id) ? 'checked' : '' %> />
+            <label for="<%= genre.name %>"><%= genre.name %></label>
+          </div>
+          <% }) %>
+        </fieldset>
+        <fieldset class="field" id="country-list">
+          Countries
+          <div></div>
+          <% allCountries.map((country) => { %>
+          <div class="country-checkbox">
+            <input type="checkbox" name="countries" id="<%= country.name %>"
+            value="<%= country.id %>" <%= locals.selectedCountries &&
+            selectedCountries.includes(country.id) ? 'checked' : '' %> />
+            <label for="<%= country.name %>"><%= country.name %></label>
+          </div>
+          <% }) %>
+        </fieldset>
+        <% if (title === 'Update Film') { %>
+        <div class="field">
+          <label for="password">Admin Password</label>
+          <input type="password" name="password" id="password" required />
+        </div>
+        <% } %>
+        <button>Submit</button>
+      </form>
+      <% if (locals.errors) { %>
+      <ul>
+        <% errors.map((error) => {%>
+        <li><%= error.msg %></li>
+        <%}) %>
+      </ul>
+      <% } %>
+    </main>
+  </body>
+</html>

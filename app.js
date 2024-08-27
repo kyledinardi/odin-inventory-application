@@ -2,7 +2,6 @@ require('dotenv').config();
 const createError = require('http-errors');
 const path = require('path');
 const debug = require('debug')('express-locallibrary-tutorial:app');
-const helmet = require('helmet');
 const RateLimit = require('express-rate-limit');
 const express = require('express');
 const cookieParser = require('cookie-parser');
@@ -20,7 +19,6 @@ const limiter = RateLimit({
 });
 
 app.use(limiter);
-app.use(helmet());
 
 const mongoDB = process.env.MONGODB_URI;
 async function main() {
@@ -31,7 +29,7 @@ main().catch((err) => debug(err));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+app.set('view engine', 'ejs');
 
 app.use(logger('dev'));
 app.use(express.json());

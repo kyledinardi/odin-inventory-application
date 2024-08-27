@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/"><button>Home</button></a>
+      <a href="/films"><button>Browse Films</button></a>
+      <a href="/genres"><button>Browse Genres</button></a>
+    </nav>
+    <main>
+      <h1><%= title %></h1>
+      <% if (locals.deleting) { %>
+      <h2>Are you sure you want to delete this film?</h2>
+      <p>This action cannot be undone.</p>
+      <form action="/films/<%= film.id %>/delete" method="post">
+        <label for="password">Admin Password</label>
+        <input type="password" name="password" id="password" required />
+        <button>Delete <%= film.title %></button>
+      </form>
+      <% if (locals.errors) { %>
+      <ul>
+        <% errors.map((error) => {%>
+        <li><%= error.msg %></li>
+        <%}) %>
+      </ul>
+      <% }} %>
+      <div class="detailPage">
+        <img
+          src="<%= film.image_url %>"
+          alt="<%= film.title %> Poster"
+          class="hero"
+        />
+        <section>
+          <p class="price">
+            $<%= film.price %>
+            <span class="stock"><%= film.stock %> in stock</span>
+          </p>
+          <dl>
+            <dt>Release Date</dt>
+            <dd><%= releaseDate %></dd>
+            <dt>Countries</dt>
+            <% locals.countries && countries.map((country) => { %>
+            <dd><%= country.name %></dd>
+            <% }) %>
+            <dt>Genres</dt>
+            <% locals.genres && genres.map((genre) => { %>
+            <dd>
+              <a href="/genres/<%= genre.id %>"><%= genre.name %></a>
+            </dd>
+            <% }) %>
+            <dt>Summary</dt>
+            <dd><%= film.summary %></dd>
+          </dl>
+        </section>
+      </div>
+      <div class="centered">
+        <a href="/films/<%= film.id %>/update"><button>Update Film</button></a>
+        <a href="/films/<%= film.id %>/delete"><button>Delete Film</button></a>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/"><button>Home</button></a>
+      <a href="/films"><button>Browse Films</button></a>
+      <a href="/genres"><button>Browse Genres</button></a>
+    </nav>
+    <main>
+      <h1><%= title %></h1>
+      <div class="centered">
+        <a href="/films/create"><button>Add Film</button></a>
+      </div>
+      <div class="listContainer">
+        <% if (allFilms.length > 0) { allFilms.map((film) => { %>
+        <div class="card">
+          <a href="/films/<%= film.id %>"
+            ><button>
+              <img src="<%= film.image_url %>" alt="" class="thumbnail" />
+              <p>
+                <%= film.title %> (<%= new Date(film.release).getFullYear() %>)
+              </p>
+              <p>$<%= film.price %></p>
+            </button></a
+          >
+        </div>
+        <%})} else { %>
+        <h2>There are no films.</h2>
+        <% } %>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,186 +1,170 @@
 const asyncHandler = require('express-async-handler');
 const { body, validationResult } = require('express-validator');
-const Film = require('../models/film');
-const Genre = require('../models/genre');
+const db = require('../db/queries');
 
 const adminPassword = process.env.ADMIN_PASSWORD;
 
 exports.genreList = asyncHandler(async (req, res, next) => {
-  const allGenres = await Genre.find({}, 'name').sort({ name: 1 }).exec();
+  const allGenres = await db.getAllGenres();
 
-  res.render('genreList', {
+  return res.render('genreList', {
     title: 'Browse Genres',
     allGenres,
   });
 });
 
 exports.genreDetails = asyncHandler(async (req, res, next) => {
+  const { genreId } = req.params;
+
   const [genre, filmsInGenre] = await Promise.all([
-    Genre.findById(req.params.id).exec(),
-    Film.find({ genres: req.params.id }, 'title release')
-      .sort({ title: 1 })
-      .exec(),
+    db.getGenreDetails(genreId),
+    db.getGenreFilms(genreId),
   ]);
 
-  if (genre === null) {
+  if (!genre) {
     const err = new Error('Genre not found');
     err.status = 404;
-    next(err);
-  } else {
-    res.render('genreDetails', {
-      title: genre.name,
-      genre,
-      filmsInGenre,
-    });
+    return next(err);
   }
+
+  return res.render('genreDetails', {
+    title: genre.name,
+    genre,
+    filmsInGenre,
+  });
 });
 
-exports.genreCreateGet = (req, res, next) => {
+exports.genreCreateGet = (req, res, next) =>
   res.render('genreForm', { title: 'Add Genre' });
-};
 
 exports.genreCreatePost = [
-  body('name', 'Genre name must not be empty')
-    .trim()
-    .isLength({ min: 1 })
-    .escape(),
-  body('description', 'Description must not be empty')
-    .trim()
-    .isLength({ min: 1 })
-    .escape(),
+  body('name', 'Genre name must not be empty').trim().notEmpty(),
+  body('description', 'Description must not be empty').trim().notEmpty(),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
 
-    const genre = new Genre({
+    const genre = {
       name: req.body.name,
       description: req.body.description,
-    });
+    };
 
     if (!errors.isEmpty()) {
-      res.render('genreForm', {
+      return res.render('genreForm', {
         title: 'Add Genre',
         genre,
         errors: errors.array(),
       });
-    } else {
-      await genre.save();
-      res.redirect(genre.url);
     }
+
+    const genreId = await db.createGenre(genre);
+    return res.redirect(`/genres/${genreId}`);
   }),
 ];
 
 exports.genreUpdateGet = asyncHandler(async (req, res, next) => {
-  const genre = await Genre.findById(req.params.id).exec();
+  const genre = await db.getGenreDetails(req.params.genreId);
 
-  if (genre === null) {
+  if (!genre) {
     const err = new Error('Genre not found');
     err.status = 404;
-    next(err);
-  } else {
-    res.render('genreForm', {
-      title: 'Update Genre',
-      genre,
-    });
+    return next(err);
   }
+
+  return res.render('genreForm', {
+    title: 'Update Genre',
+    genre,
+  });
 });
 
 exports.genreUpdatePost = [
-  body('name', 'Genre name must not be empty')
-    .trim()
-    .isLength({ min: 1 })
-    .escape(),
-  body('description', 'Description must not be empty')
-    .trim()
-    .isLength({ min: 1 })
-    .escape(),
+  body('name', 'Genre name must not be empty').trim().notEmpty(),
+  body('description', 'Description must not be empty').trim().notEmpty(),
+
   body('password')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Enter the admin password')
     .equals(adminPassword)
     .withMessage('Incorrect Password'),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
+    const { genreId } = req.params;
 
-    const genre = new Genre({
+    const genre = {
+      id: genreId,
       name: req.body.name,
       description: req.body.description,
-      _id: req.params.id,
-    });
+    };
 
     if (!errors.isEmpty()) {
-      res.render('genreForm', {
+      return res.render('genreForm', {
         title: 'Add Genre',
         genre,
         errors: errors.array(),
       });
-    } else {
-      const updatedGenre = await Genre.findByIdAndUpdate(
-        req.params.id,
-        genre,
-        {},
-      );
-      res.redirect(updatedGenre.url);
     }
+
+    await db.updateGenre(genre);
+    return res.redirect(`/genres/${genreId}`);
   }),
 ];
 
 exports.genreDeleteGet = asyncHandler(async (req, res, next) => {
+  const { genreId } = req.params;
+
   const [genre, filmsInGenre] = await Promise.all([
-    Genre.findById(req.params.id).exec(),
-    Film.find({ genres: req.params.id }, 'title release')
-      .sort({ title: 1 })
-      .exec(),
+    db.getGenreDetails(genreId),
+    db.getGenreFilms(genreId),
   ]);
 
-  if (genre === null) {
-    res.redirect('/genres');
+  if (!genre) {
+    const err = new Error('Genre not found');
+    err.status = 404;
+    return next(err);
   }
 
-  res.render('genreDelete', {
-    title: 'Delete Genre',
+  return res.render('genreDetails', {
+    title: genre.name,
     genre,
     filmsInGenre,
+    deleting: true,
   });
 });
 
 exports.genreDeletePost = [
   body('password')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Enter the admin password')
     .equals(adminPassword)
     .withMessage('Incorrect Password'),
+
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
+    const { genreId } = req.params;
 
     const [genre, filmsInGenre] = await Promise.all([
-      Genre.findById(req.params.id).exec(),
-      Film.find({ genres: req.params.id }).sort({ title: 1 }).exec(),
+      db.getGenreDetails(genreId),
+      db.getGenreFilms(genreId),
     ]);
 
     if (!errors.isEmpty()) {
-      res.render('genreDelete', {
+      return res.render('genreDetails', {
+        title: genre.name,
         genre,
         filmsInGenre,
+        deleting: true,
         errors: errors.array(),
       });
-    } else {
-      if (filmsInGenre !== null) {
-        filmsInGenre.forEach(async (film) => {
-          await Film.updateOne(
-            { _id: film._id },
-            { $pullAll: { genres: [req.params.id] } },
-          );
-        });
-      }
-
-      await Genre.findByIdAndDelete(req.body.genreId);
-      res.redirect('/genres');
     }
+
+    await Promise.all([
+      db.deleteGenre(genreId),
+      db.deleteGenreFilmLinks(genreId),
+    ]);
+
+    return res.redirect('/genres');
   }),
 ];

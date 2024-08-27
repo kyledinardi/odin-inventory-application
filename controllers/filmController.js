@@ -1,79 +1,87 @@
 const asyncHandler = require('express-async-handler');
 const multer = require('multer');
-const { writeFileSync, unlinkSync } = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { unlink } = require('fs/promises');
 const { body, validationResult } = require('express-validator');
-const Film = require('../models/film');
-const Genre = require('../models/genre');
-const allCountries = require('../public/javascripts/allCountries');
+const db = require('../db/queries');
 
-const storage = multer.memoryStorage();
+const storage = multer.diskStorage({
+  destination: 'uploads/',
+  filename(req, file, cb) {
+    cb(null, `${crypto.randomUUID()}.${file.originalname.split('.').pop()}`);
+  },
+});
+
 const upload = multer({ storage, limits: { fileSize: 1e7 } });
 const adminPassword = process.env.ADMIN_PASSWORD;
 
 exports.index = asyncHandler(async (req, res, next) => {
-  const [allFilms, genreCount] = await Promise.all([
-    Film.find().exec(),
-    Genre.countDocuments({}).exec(),
-  ]);
+  const [filmCount, genreCount, countryCount, minPrice, stockSum] =
+    await Promise.all([
+      db.getFilmCount(),
+      db.getGenreCount(),
+      db.getCountryCount(),
+      db.getMinPrice(),
+      db.getStockSum(),
+    ]);
 
-  const uniqueCountries = [];
-
-  allFilms.forEach((film) => {
-    film.countries.forEach((country) => {
-      if (!uniqueCountries.includes(country)) {
-        uniqueCountries.push(country);
-      }
-    });
-  });
-
-  const allPrices = allFilms.map((film) => film.price);
-
-  res.render('index', {
+  return res.render('index', {
     title: 'Kinoplex Home Video',
-    filmCount: allFilms.length,
-    countryCount: uniqueCountries.length,
-    minPrice: Math.min(...allPrices).toFixed(2),
-    stockCount: allFilms.reduce((acc, cur) => acc + cur.stock, 0),
+    filmCount,
+    countryCount,
+    minPrice,
+    stockSum,
     genreCount,
   });
 });
 
 exports.filmList = asyncHandler(async (req, res, next) => {
-  const allFilms = await Film.find().sort({ title: 1 }).exec();
+  const allFilms = await db.getAllFilms();
 
-  res.render('filmList', {
+  return res.render('filmList', {
     title: 'Browse Films',
     allFilms,
   });
 });
 
 exports.filmDetails = asyncHandler(async (req, res, next) => {
-  const film = await Film.findById(req.params.id).populate('genres').exec();
+  const { filmId } = req.params;
 
-  if (film === null) {
+  const [film, genres, countries] = await Promise.all([
+    db.getFilmDetails(filmId),
+    db.getFilmGenres(filmId),
+    db.getFilmCountries(filmId),
+  ]);
+
+  if (!film) {
     const err = new Error('Film not found');
     err.status = 404;
-    next(err);
-  } else {
-    const releaseDate = film.release.toLocaleString('en-US', {
-      timeZone: 'UTC',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-
-    res.render('filmDetails', {
-      title: `${film.title} (${film.release.getFullYear()})`,
-      film,
-      releaseDate,
-    });
+    return next(err);
   }
+
+  const releaseDate = new Date(film.release).toLocaleDateString('en-US', {
+    timeZone: 'UTC',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  return res.render('filmDetails', {
+    title: `${film.title} (${new Date(film.release).getFullYear()})`,
+    film,
+    genres,
+    countries,
+    releaseDate,
+  });
 });
 
 exports.filmCreateGet = asyncHandler(async (req, res, next) => {
-  const allGenres = await Genre.find().sort({ name: 1 }).exec();
+  const [allGenres, allCountries] = await Promise.all([
+    db.getAllGenres(),
+    db.getAllCountries(),
+  ]);
 
-  res.render('filmForm', {
+  return res.render('filmForm', {
     title: 'Add Film',
     allGenres,
     allCountries,
@@ -82,240 +90,196 @@ exports.filmCreateGet = asyncHandler(async (req, res, next) => {
 
 exports.filmCreatePost = [
   upload.single('image'),
-  (req, res, next) => {
-    if (!Array.isArray(req.body.genres)) {
-      req.body.genres = !req.body.genres ? [] : [req.body.genres];
-    }
-    if (!Array.isArray(req.body.countries)) {
-      req.body.countries = !req.body.countries ? [] : [req.body.countries];
-    }
 
-    next();
-  },
+  body('title', 'Title must not be empty').trim().notEmpty(),
+  body('summary', 'Summary must not be empty').trim().notEmpty(),
+  body('release', 'Invalid release date').toDate().isISO8601(),
 
-  body('title', 'Title must not be empty').trim().isLength({ min: 1 }).escape(),
-  body('release', 'Invalid release date')
-    .isISO8601()
-    .toDate()
-    .escape()
-    .withMessage('Invalid release date'),
   body('price')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Price must not be empty')
     .isFloat({ min: 0 })
     .withMessage('Price must be a positive number'),
+
   body('stock')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Stock must not be empty')
-    .isFloat({ min: 0 })
-    .withMessage('Stock must be a positive number'),
-  body('summary', 'Summary must not be empty')
-    .trim()
-    .isLength({ min: 1 })
-    .escape(),
-  body('genres.*').escape(),
-  body('countries.*').escape(),
+    .isInt({ min: 0 })
+    .withMessage('Stock must be a positive whole number'),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
 
-    const film = new Film({
+    const film = {
       title: req.body.title,
+      summary: req.body.summary,
       release: req.body.release,
       price: Math.round(req.body.price * 100) / 100,
-      stock: parseInt(req.body.stock, 10),
-      summary: req.body.summary,
-      countries: req.body.countries,
-      genres: req.body.genres,
-      imageUrl: req.file ? `/images/${crypto.randomUUID()}.jpg` : null,
-    });
+      stock: req.body.stock,
+    };
+
+    const selectedGenres = req.body.genres;
+    const selectedCountries = req.body.countries;
 
     if (!errors.isEmpty()) {
-      const allGenres = await Genre.find().sort({ name: 1 }).exec();
+      const [allGenres, allCountries] = await Promise.all([
+        db.getAllGenres(),
+        db.getAllCountries(),
+      ]);
 
-      for (let i = 0; i < allGenres.length; i += 1) {
-        if (film.genres.includes(allGenres[i].id)) {
-          allGenres[i].checked = true;
-        }
-      }
-
-      for (let i = 0; i < allCountries.length; i += 1) {
-        if (film.countries.includes(allCountries[i].name)) {
-          allCountries[i].checked = true;
-        } else {
-          allCountries[i].checked = false;
-        }
-      }
-
-      res.render('filmForm', {
+      return res.render('filmForm', {
         title: 'Add Film',
         allGenres,
         allCountries,
         film,
+        selectedGenres,
+        selectedCountries,
         errors: errors.array(),
       });
-    } else {
-      if (req.file) {
-        writeFileSync(`./public/${film.imageUrl}`, req.file.buffer);
-      }
-
-      await film.save();
-      res.redirect(film.url);
     }
+
+    const result = await cloudinary.uploader.upload(req.file.path);
+    film.imageUrl = result.secure_url;
+    unlink(req.file.path);
+    const filmId = await db.createFilm(film);
+
+    await Promise.all([
+      db.createFilmGenreLinks(filmId, selectedGenres),
+      db.createFilmCountryLinks(filmId, selectedCountries),
+    ]);
+
+    return res.redirect(`/films/${filmId}`);
   }),
 ];
 
 exports.filmUpdateGet = asyncHandler(async (req, res, next) => {
-  const [film, allGenres] = await Promise.all([
-    Film.findById(req.params.id).exec(),
-    Genre.find().sort({ name: 1 }).exec(),
-  ]);
+  const { filmId } = req.params;
 
-  for (let i = 0; i < allGenres.length; i += 1) {
-    if (film.genres.includes(allGenres[i].id)) {
-      allGenres[i].checked = true;
-    }
-  }
+  const [film, allGenres, allCountries, filmGenres, filmCountries] =
+    await Promise.all([
+      db.getFilmDetails(filmId),
+      db.getAllGenres(),
+      db.getAllCountries(),
+      db.getFilmGenres(filmId),
+      db.getFilmCountries(filmId),
+    ]);
 
-  for (let i = 0; i < allCountries.length; i += 1) {
-    if (film.countries.includes(allCountries[i].name)) {
-      allCountries[i].checked = true;
-    } else {
-      allCountries[i].checked = false;
-    }
-  }
-
-  if (film === null) {
+  if (!film) {
     const err = new Error('Film not found');
     err.status = 404;
     next(err);
-  } else {
-    res.render('filmForm', {
-      title: 'Update Film',
-      allGenres,
-      allCountries,
-      film,
-    });
   }
+
+  const selectedGenres = filmGenres.map((genre) => genre.id);
+  const selectedCountries = filmCountries.map((country) => country.id);
+
+  return res.render('filmForm', {
+    title: 'Update Film',
+    allGenres,
+    allCountries,
+    film,
+    selectedGenres,
+    selectedCountries,
+  });
 });
 
 exports.filmUpdatePost = [
   upload.single('image'),
-  (req, res, next) => {
-    if (!Array.isArray(req.body.genres)) {
-      req.body.genres = !req.body.genres ? [] : [req.body.genres];
-    }
-    if (!Array.isArray(req.body.countries)) {
-      req.body.countries = !req.body.countries ? [] : [req.body.countries];
-    }
 
-    next();
-  },
+  body('title', 'Title must not be empty').trim().notEmpty(),
+  body('summary', 'Summary must not be empty').trim().notEmpty(),
+  body('release', 'Invalid release date').isISO8601().toDate(),
 
-  body('title', 'Title must not be empty').trim().isLength({ min: 1 }).escape(),
-  body('release', 'Invalid release date')
-    .isISO8601()
-    .toDate()
-    .escape()
-    .withMessage('Invalid release date'),
   body('price')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Price must not be empty')
     .isFloat({ min: 0 })
     .withMessage('Price must be a positive number'),
+
   body('stock')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Stock must not be empty')
-    .isFloat({ min: 0 })
+    .isInt({ min: 0 })
     .withMessage('Stock must be a positive number'),
-  body('summary', 'Summary must not be empty')
-    .trim()
-    .isLength({ min: 1 })
-    .escape(),
-  body('genres.*').escape(),
-  body('countries.*').escape(),
+
   body('password')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Enter the admin password')
     .equals(adminPassword)
     .withMessage('Incorrect Password'),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
-    const oldFilm = await Film.findById(req.params.id, 'imageUrl');
+    const { filmId } = req.params;
 
-    let newImageUrl;
-
-    if (req.file) {
-      newImageUrl = `/images/${crypto.randomUUID()}.jpg`;
-    } else if (oldFilm.imageUrl) {
-      newImageUrl = oldFilm.imageUrl;
-    } else {
-      newImageUrl = null;
-    }
-
-    const film = new Film({
+    const film = {
+      id: req.params.filmId,
       title: req.body.title,
       release: req.body.release,
       price: Math.round(req.body.price * 100) / 100,
       stock: parseInt(req.body.stock, 10),
       summary: req.body.summary,
-      countries: req.body.countries,
-      genres: req.body.genres,
-      imageUrl: newImageUrl,
-      _id: req.params.id,
-    });
+    };
+
+    const selectedGenres = req.body.genres;
+    const selectedCountries = req.body.countries;
 
     if (!errors.isEmpty()) {
-      const allGenres = await Genre.find().sort({ name: 1 }).exec();
+      const [allGenres, allCountries] = await Promise.all([
+        db.getAllGenres(),
+        db.getAllCountries(),
+      ]);
 
-      for (let i = 0; i < allGenres.length; i += 1) {
-        if (film.genres.includes(allGenres[i].id)) {
-          allGenres[i].checked = true;
-        }
-      }
-
-      for (let i = 0; i < allCountries.length; i += 1) {
-        if (film.countries.includes(allCountries[i].name)) {
-          allCountries[i].checked = true;
-        } else {
-          allCountries[i].checked = false;
-        }
-      }
-
-      res.render('filmForm', {
+      return res.render('filmForm', {
         title: 'Update Film',
         allGenres,
         allCountries,
         film,
+        selectedGenres,
+        selectedCountries,
         errors: errors.array(),
       });
-    } else {
-      if (req.file) {
-        writeFileSync(`./public/${film.imageUrl}`, req.file.buffer);
-      }
-
-      const updatedFilm = await Film.findByIdAndUpdate(req.params.id, film, {});
-      res.redirect(updatedFilm.url);
     }
+
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      film.imageUrl = result.secure_url;
+      unlink(req.file.path);
+    }
+
+    await Promise.all([
+      db.deleteFilmGenreLinks(filmId),
+      db.deleteFilmCountryLinks(filmId),
+    ]);
+
+    await Promise.all([
+      req.file ? db.updateFilmWithImage(film) : db.updateFilmWithoutImage(film),
+      db.createFilmGenreLinks(filmId, selectedGenres),
+      db.createFilmCountryLinks(filmId, selectedCountries),
+    ]);
+
+    return res.redirect(`/films/${filmId}`);
   }),
 ];
 
 exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
-  const film = await Film.findById(req.params.id).populate('genres').exec();
+  const { filmId } = req.params;
+
+  const [film, genres, countries] = await Promise.all([
+    db.getFilmDetails(filmId),
+    db.getFilmGenres(filmId),
+    db.getFilmCountries(filmId),
+  ]);
 
   if (film === null) {
-    res.redirect('/films');
+    const err = new Error('Film not found');
+    err.status = 404;
+    return next(err);
   }
 
   const releaseDate = film.release.toLocaleString('en-US', {
@@ -325,9 +289,12 @@ exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
     year: 'numeric',
   });
 
-  res.render('filmDelete', {
-    title: 'Delete Film',
+  return res.render('filmDetails', {
+    title: `${film.title} (${new Date(film.release).getFullYear()})`,
+    deleting: true,
     film,
+    genres,
+    countries,
     releaseDate,
   });
 });
@@ -335,16 +302,22 @@ exports.filmDeleteGet = asyncHandler(async (req, res, next) => {
 exports.filmDeletePost = [
   body('password')
     .trim()
-    .isLength({ min: 1 })
-    .escape()
+    .notEmpty()
     .withMessage('Enter the admin password')
     .equals(adminPassword)
     .withMessage('Incorrect Password'),
+
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
-    const film = await Film.findById(req.params.id).populate('genres').exec();
+    const { filmId } = req.params;
 
     if (!errors.isEmpty()) {
+      const [film, genres, countries] = await Promise.all([
+        db.getFilmDetails(filmId),
+        db.getFilmGenres(filmId),
+        db.getFilmCountries(filmId),
+      ]);
+
       const releaseDate = film.release.toLocaleString('en-US', {
         timeZone: 'UTC',
         month: 'long',
@@ -352,18 +325,23 @@ exports.filmDeletePost = [
         year: 'numeric',
       });
 
-      res.render('filmForm', {
-        title: 'Delete Film',
+      return res.render('filmForm', {
+        title: `${film.title} (${new Date(film.release).getFullYear()})`,
+        deleting: true,
         film,
+        genres,
+        countries,
         releaseDate,
         errors: errors.array(),
       });
-    } else {
-      if (film.imageUrl) {
-        unlinkSync(`./public/${film.imageUrl}`);
-      }
-      await Film.findByIdAndDelete(req.body.filmId);
-      res.redirect('/films');
     }
+
+    await Promise.all([
+      db.deleteFilm(filmId),
+      db.deleteFilmGenreLinks(filmId),
+      db.deleteFilmCountryLinks(filmId),
+    ]);
+
+    return res.redirect('/films');
   }),
 ];
